@@ -77,6 +77,12 @@ input::placeholder,textarea::placeholder{color:var(--dim)}
 
 /* category filter chips */
 .filters{display:flex;flex-wrap:wrap;gap:6px}
+.relf>summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;font:500 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:2px 0}
+.relf>summary::-webkit-details-marker{display:none}
+.relf>summary::before{content:"+";color:var(--accent)}
+.relf[open]>summary::before{content:"\2212"}
+.relf>summary b{font-weight:400;color:var(--accent-hi)}
+.relf .filters{margin-top:8px}
 .fchip{display:inline-flex;align-items:center;gap:7px;background:transparent;border:1px solid var(--line-2);border-radius:999px;padding:4px 11px;font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
 .fchip i{width:8px;height:8px;border-radius:50%;background:var(--c)}
 .fchip b{font-weight:400;font-variant-numeric:tabular-nums}
@@ -196,6 +202,7 @@ input::placeholder,textarea::placeholder{color:var(--dim)}
     <div class="tools">
       <input id="search" type="search" placeholder="Search by name" aria-label="Search by name" autocomplete="off">
       <div class="filters" id="filters"></div>
+      <details class="relf" id="relf"><summary><span>Relationship</span> <b id="relCount"></b></summary><div class="filters" id="relChips"></div></details>
       <button class="btn primary" id="addBtn" type="button">New person</button>
     </div>
     <ul id="list" aria-label="People"></ul>
@@ -260,7 +267,8 @@ input::placeholder,textarea::placeholder{color:var(--dim)}
       { k: "job", l: "Job / company" },
       { k: "school", l: "School / education details (school, field, years)" },
       { k: "partner", l: "Partner" },
-      { k: "childrenPets", l: "Children / pets" } ] },
+      { k: "childrenPets", l: "Children / pets" },
+      { k: "siblings", l: "Brothers / sisters" } ] },
     { t: "Religion", f: [
       { k: "religion", l: "Religion" },
       { k: "church", l: "Church" } ] },
@@ -277,14 +285,14 @@ input::placeholder,textarea::placeholder{color:var(--dim)}
   ];
   var MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   var MAXD = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-  var REL = ["Family", "Friend", "Close friend", "Partner", "Colleague", "Acquaintance", "Other"];
+  var REL = ["Family", "Friend", "Close friend", "Partner", "Colleague", "Ex-colleague", "Acquaintance", "Other"];
   var CATS = [
     { id: "safe", label: "Safe", hex: "#5fa072", rgb: "95,160,114" },
     { id: "warning", label: "Warning", hex: "#e6cd66", rgb: "230,205,102" },
     { id: "danger", label: "Danger", hex: "#cf5a52", rgb: "207,90,82" } ];
   var STATUSES = [
     { id: "lost", label: "Lost", hex: "#cf5a52", rgb: "207,90,82" },
-    { id: "warning", label: "Warning", hex: "#e6cd66", rgb: "230,205,102" },
+    { id: "losing", label: "Losing", hex: "#e6cd66", rgb: "230,205,102" },
     { id: "unknown", label: "Unknown", hex: "#9a9892", rgb: "154,152,146" },
     { id: "active", label: "Active", hex: "#5fa072", rgb: "95,160,114" },
     { id: "strong", label: "Strong", hex: "#5b9bd5", rgb: "91,155,213" } ];
@@ -355,7 +363,7 @@ input::placeholder,textarea::placeholder{color:var(--dim)}
   var cur = null;           // working copy of the open person
   var dirty = false, saveTimer = null, pending = 0, chain = Promise.resolve();
   var mode = "loading";     // loading | cloud | local
-  var col = null, dl = null, loadedOnce = false, query = "", catFilter = "";
+  var col = null, dl = null, loadedOnce = false, query = "", catFilter = "", relFilter = [];
 
   function newId() { return "p" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
   function blank() {
@@ -369,7 +377,8 @@ input::placeholder,textarea::placeholder{color:var(--dim)}
     TEXT_KEYS.forEach(function (k) { if (typeof src[k] === "string") p[k] = src[k].slice(0, 5000); });
     p.cat = catOf(src.cat) ? src.cat : "";
     p.dob = p.dob.replace(/^\d{4}-(\d{2}-\d{2})$/, "$1");
-    p.status = statusOf(src.status) ? src.status : "";
+    var stIn = src.status === "warning" ? "losing" : src.status;
+    p.status = statusOf(stIn) ? stIn : "";
     p.locks = Array.isArray(src.locks) ? src.locks.filter(function (k) { return TEXT_KEYS.indexOf(k) >= 0; }) : [];
     p.rel = Array.isArray(src.rel) ? src.rel.filter(function (r) { return REL.indexOf(r) >= 0; }) : [];
     p.dates = Array.isArray(src.dates) ? src.dates.slice(0, 30).map(function (x) {
@@ -448,6 +457,16 @@ input::placeholder,textarea::placeholder{color:var(--dim)}
     return { days: Math.round((next - t) / 864e5), label: d + " " + MONTHS[mo] };
   }
   function daysText(n) { return n === 0 ? "Today" : n === 1 ? "Tomorrow" : "in " + n + " days"; }
+  function renderRelChips(all) {
+    var h = "";
+    REL.forEach(function (r) {
+      var n = all.filter(function (p) { return (p.rel || []).indexOf(r) >= 0; }).length;
+      h += '<button type="button" class="fchip" data-rf="' + r + '" aria-pressed="' + (relFilter.indexOf(r) >= 0) + '">' + r + ' <b>' + n + '</b></button>';
+    });
+    if (relFilter.length) h += '<button type="button" class="fchip" data-rf-clear="1">Clear</button>';
+    $("relChips").innerHTML = h;
+    $("relCount").textContent = relFilter.length ? "(" + relFilter.length + " selected)" : "";
+  }
   function renderFilters(all) {
     var h = '<button type="button" class="fchip" data-cf="" aria-pressed="' + (catFilter === "") + '">All <b>' + all.length + '</b></button>';
     CATS.forEach(function (c) {
@@ -462,13 +481,14 @@ input::placeholder,textarea::placeholder{color:var(--dim)}
   function renderList() {
     var ul = $("list"), all = sortedPeople(), q = query.trim().toLowerCase();
     // Skip the rebuild when nothing visible changed, so a background save never replaces a button mid-click.
-    var sig = JSON.stringify([catFilter, q, dayKey(), cur && cur.id, loadedOnce, all.map(function (p) { return [p.id, p.fullName, p.cat, p.status, p.dob, p.nickname, p.rel]; })]);
+    var sig = JSON.stringify([catFilter, relFilter, q, dayKey(), cur && cur.id, loadedOnce, all.map(function (p) { return [p.id, p.fullName, p.cat, p.status, p.dob, p.nickname, p.rel]; })]);
     if (sig === lastSig) return;
     lastSig = sig;
-    renderFilters(all);
+    renderFilters(all); renderRelChips(all);
     var bdMode = catFilter === "birthdays";
     var rows = all.filter(function (p) {
       if (catFilter && !bdMode && p.cat !== catFilter) return false;
+      if (relFilter.length && !(p.rel || []).some(function (r) { return relFilter.indexOf(r) >= 0; })) return false;
       return !q || (p.fullName || "").toLowerCase().indexOf(q) >= 0 || (p.nickname || "").toLowerCase().indexOf(q) >= 0;
     });
     if (bdMode) rows.sort(function (a, b) {
@@ -612,7 +632,7 @@ input::placeholder,textarea::placeholder{color:var(--dim)}
   $("addBtn").addEventListener("click", function () {
     flushNow();
     var p = blank(); people.set(p.id, p); enqueue(p);
-    $("search").value = ""; query = ""; catFilter = "";
+    $("search").value = ""; query = ""; catFilter = ""; relFilter = [];
     show(p); $("f_fullName").focus();
   });
   $("backBtn").addEventListener("click", function () { show(null); });
@@ -657,6 +677,12 @@ input::placeholder,textarea::placeholder{color:var(--dim)}
     if (t.checked && i < 0) cur.rel.push(t.dataset.rel);
     if (!t.checked && i >= 0) cur.rel.splice(i, 1);
     people.set(cur.id, cur); renderList(); touch();
+  });
+  $("relChips").addEventListener("click", function (e) {
+    var b = e.target.closest("button"); if (!b) return;
+    if (b.dataset.rfClear) relFilter = [];
+    else { var r = b.dataset.rf, i = relFilter.indexOf(r); if (i >= 0) relFilter.splice(i, 1); else relFilter.push(r); }
+    renderList();
   });
   $("filters").addEventListener("click", function (e) {
     var b = e.target.closest("[data-cf]"); if (!b) return;
