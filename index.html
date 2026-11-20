@@ -133,11 +133,24 @@ input::placeholder,textarea::placeholder{color:var(--dim)}
 .field.s1{grid-column:span 1}.field.s3{grid-column:span 3}.field.s4{grid-column:span 4}
 .field>label,.lbl,.lblrow label{font:400 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
 
+.field select{width:100%;min-width:0;background:var(--surface);border:1px solid var(--line-2);border-radius:6px;padding:9px 6px;color-scheme:dark;font:inherit;color:inherit}
+.field select:hover{border-color:var(--dim)}
+.field select.islocked{opacity:.6;cursor:not-allowed}
+.md{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:8px}
+.md [hidden]{display:none!important}
+.md input{grid-column:1/-1}
 .lblrow{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:16px}
 .field input.unk{-webkit-appearance:none;appearance:none;width:15px;height:15px;padding:0;margin:0;flex:none;position:relative;cursor:pointer;background:transparent;border:1px solid var(--line-2);border-radius:3px}
 .field input.unk:hover{border-color:var(--muted)}
 .field input.unk:checked{background:var(--accent);border-color:var(--accent)}
 .field input.unk:checked::after{content:"";position:absolute;left:4px;top:1px;width:4px;height:8px;border:solid var(--accent-ink);border-width:0 2px 2px 0;transform:rotate(45deg)}
+.boxes{display:flex;align-items:center;gap:9px}
+.field input.lock{-webkit-appearance:none;appearance:none;width:15px;height:15px;padding:0;margin:0;flex:none;position:relative;cursor:pointer;background:transparent;border:1px solid var(--line-2);border-radius:50%}
+.field input.lock:hover{border-color:var(--muted)}
+.field input.lock:checked{background:var(--accent-hi);border-color:var(--accent-hi)}
+.field input.lock:checked::after{content:"";position:absolute;inset:3px;border-radius:50%;background:var(--accent-ink)}
+.field input.unk:disabled{opacity:.35;cursor:not-allowed}
+.field input.islocked,.field textarea.islocked{opacity:.6;cursor:not-allowed}
 .field input.isunk,.field textarea.isunk{color:var(--dim);font-style:italic;background:transparent}
 .cats{display:flex;flex-wrap:wrap;gap:8px}
 .catb{display:inline-flex;align-items:center;gap:9px;background:transparent;border:1px solid var(--line-2);border-radius:999px;padding:8px 18px;font:500 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
@@ -230,7 +243,7 @@ input::placeholder,textarea::placeholder{color:var(--dim)}
     { t: "Basics", f: [
       { k: "fullName", l: "Full name", s: "s4" },
       { k: "nickname", l: "Nickname" },
-      { k: "dob", l: "Birthday", type: "date", s: "s1" },
+      { k: "dob", l: "Birthday", kind: "monthday", s: "s1" },
       { k: "nationality", l: "Nationality", s: "s1" } ] },
     { t: "Relationship", f: [
       { k: "rel", l: "Relationship type", kind: "chips", s: "s4" },
@@ -262,6 +275,8 @@ input::placeholder,textarea::placeholder{color:var(--dim)}
       { k: "topicsAvoid", l: "Topics to avoid", kind: "area" },
       { k: "notes", l: "Shared memories, current life situation, things to remember", kind: "area", s: "s4", rows: 6 } ] }
   ];
+  var MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  var MAXD = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
   var REL = ["Family", "Friend", "Close friend", "Partner", "Colleague", "Acquaintance", "Other"];
   var CATS = [
     { id: "safe", label: "Safe", hex: "#5fa072", rgb: "95,160,114" },
@@ -276,14 +291,16 @@ input::placeholder,textarea::placeholder{color:var(--dim)}
   function statusOf(id) { for (var i = 0; i < STATUSES.length; i++) if (STATUSES[i].id === id) return STATUSES[i]; return null; }
   function catOf(id) { for (var i = 0; i < CATS.length; i++) if (CATS[i].id === id) return CATS[i]; return null; }
   var TEXT_KEYS = [];
-  SECTIONS.forEach(function (s) { s.f.forEach(function (f) { if (!f.kind || f.kind === "area") TEXT_KEYS.push(f.k); }); });
+  SECTIONS.forEach(function (s) { s.f.forEach(function (f) { if (!f.kind || f.kind === "area" || f.kind === "monthday") TEXT_KEYS.push(f.k); }); });
 
   var $ = function (id) { return document.getElementById(id); };
   var KEY = "person-profiles-v1";
 
   function lblRow(f) {
-    return '<div class="lblrow"><label for="f_' + f.k + '">' + f.l + '</label>' +
-      '<input type="checkbox" class="unk" data-unk="' + f.k + '" title="Unknown" aria-label="Mark ' + f.l.replace(/"/g, "") + ' as unknown"></div>';
+    var nm = f.l.replace(/"/g, "");
+    return '<div class="lblrow"><label for="f_' + f.k + '">' + f.l + '</label><span class="boxes">' +
+      '<input type="checkbox" class="lock" data-lock="' + f.k + '" title="Lock (cannot be edited)" aria-label="Lock ' + nm + ' so it cannot be edited">' +
+      '<input type="checkbox" class="unk" data-unk="' + f.k + '" title="Unknown" aria-label="Mark ' + nm + ' as unknown"></span></div>';
   }
   function isUnknown(v) { return String(v || "").trim().toLowerCase() === "unknown"; }
 
@@ -306,6 +323,13 @@ input::placeholder,textarea::placeholder{color:var(--dim)}
             html += '<button type="button" class="catb" role="radio" aria-checked="false" data-cat="' + c.id + '" style="--c:' + c.hex + ';--kr:' + c.rgb + '"><i></i>' + c.label + '</button>';
           });
           html += "</div></div>";
+        } else if (f.kind === "monthday") {
+          var mo = '<option value="">Month</option>', dy = '<option value="">Day</option>', i;
+          for (i = 0; i < 12; i++) mo += '<option value="' + (i < 9 ? "0" : "") + (i + 1) + '">' + MON[i] + '</option>';
+          for (i = 1; i <= 31; i++) dy += '<option value="' + (i < 10 ? "0" : "") + i + '">' + i + '</option>';
+          html += '<div class="' + cls + '">' + lblRow(f) + '<div class="md"><select id="f_dob_m" data-md="m" aria-label="Birthday month">' + mo + '</select>' +
+            '<select id="f_dob_d" data-md="d" aria-label="Birthday day">' + dy + '</select>' +
+            '<input id="f_dob" data-k="dob" type="text" hidden readonly></div></div>';
         } else if (f.kind === "status") {
           html += '<div class="' + cls + '" role="radiogroup" aria-label="Status"><span class="lbl">' + f.l + ' (select again to clear)</span><div class="cats">';
           STATUSES.forEach(function (c) {
@@ -335,7 +359,7 @@ input::placeholder,textarea::placeholder{color:var(--dim)}
 
   function newId() { return "p" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
   function blank() {
-    var p = { id: newId(), cat: "", status: "", rel: [], dates: [{ d: "", w: "" }], created: Date.now(), updated: Date.now() };
+    var p = { id: newId(), cat: "", status: "", locks: [], rel: [], dates: [{ d: "", w: "" }], created: Date.now(), updated: Date.now() };
     TEXT_KEYS.forEach(function (k) { p[k] = ""; });
     return p;
   }
@@ -344,7 +368,9 @@ input::placeholder,textarea::placeholder{color:var(--dim)}
     p.id = keepId || (typeof src.id === "string" && /^[A-Za-z0-9_.~:@+-]{1,100}$/.test(src.id) ? src.id : newId());
     TEXT_KEYS.forEach(function (k) { if (typeof src[k] === "string") p[k] = src[k].slice(0, 5000); });
     p.cat = catOf(src.cat) ? src.cat : "";
+    p.dob = p.dob.replace(/^\d{4}-(\d{2}-\d{2})$/, "$1");
     p.status = statusOf(src.status) ? src.status : "";
+    p.locks = Array.isArray(src.locks) ? src.locks.filter(function (k) { return TEXT_KEYS.indexOf(k) >= 0; }) : [];
     p.rel = Array.isArray(src.rel) ? src.rel.filter(function (r) { return REL.indexOf(r) >= 0; }) : [];
     p.dates = Array.isArray(src.dates) ? src.dates.slice(0, 30).map(function (x) {
       return { d: String((x && x.d) || "").slice(0, 60), w: String((x && x.w) || "").slice(0, 200) };
@@ -415,8 +441,8 @@ input::placeholder,textarea::placeholder{color:var(--dim)}
   function dayKey() { var t = todayStart(); return t.getFullYear() + "-" + t.getMonth() + "-" + t.getDate(); }
   /* Next birthday from the date of birth: label like "14 Mar" and whole days from today (0 = today). */
   function bday(p) {
-    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(p.dob || ""); if (!m) return null;
-    var mo = +m[2] - 1, d = +m[3]; if (mo < 0 || mo > 11 || d < 1 || d > 31) return null;
+    var m = /^(?:\d{4}-)?(\d{2})-(\d{2})$/.exec(p.dob || ""); if (!m) return null;
+    var mo = +m[1] - 1, d = +m[2]; if (mo < 0 || mo > 11 || d < 1 || d > 31) return null;
     var t = todayStart(), next = new Date(t.getFullYear(), mo, d);
     if (next < t) next = new Date(t.getFullYear() + 1, mo, d);
     return { days: Math.round((next - t) / 864e5), label: d + " " + MONTHS[mo] };
@@ -521,9 +547,21 @@ input::placeholder,textarea::placeholder{color:var(--dim)}
   }
   function paintField(k) {
     var el = $("f_" + k), v = cur[k] || "", unk = isUnknown(v), box = document.querySelector('[data-unk="' + k + '"]');
-    if (el.dataset.date) el.type = unk ? "text" : "date";   // a date box cannot show the word
-    el.value = v; el.readOnly = unk; el.classList.toggle("isunk", unk);
-    if (box) box.checked = unk;
+    var locked = cur.locks.indexOf(k) >= 0, lb = document.querySelector('[data-lock="' + k + '"]');
+    if (k === "dob") {                                   // month + day selectors; the text box only shows "Unknown"
+      var md = /^(?:\d{4}-)?(\d{2})-(\d{2})$/.exec(v), ms = $("f_dob_m"), ds = $("f_dob_d");
+      ms.value = !unk && md ? md[1] : ""; ds.value = !unk && md ? md[2] : "";
+      ms.hidden = ds.hidden = unk; el.hidden = !unk; el.value = unk ? v : ""; el.readOnly = true;
+      el.classList.toggle("isunk", unk);
+      ms.disabled = ds.disabled = el.disabled = locked;
+      ms.classList.toggle("islocked", locked); ds.classList.toggle("islocked", locked); el.classList.toggle("islocked", locked);
+    } else {
+      if (el.dataset.date) el.type = unk ? "text" : "date";   // a date box cannot show the word
+      el.value = v; el.readOnly = unk; el.classList.toggle("isunk", unk);
+      el.disabled = locked; el.classList.toggle("islocked", locked);
+    }
+    if (box) { box.checked = unk; box.disabled = locked; }
+    if (lb) lb.checked = locked;
   }
   var prevVals = {};
   function setCatUI() {
@@ -593,6 +631,18 @@ input::placeholder,textarea::placeholder{color:var(--dim)}
   });
   $("form").addEventListener("change", function (e) {
     var t = e.target; if (!cur) return;
+    if (t.dataset.md) {
+      var mv = $("f_dob_m").value, dv = $("f_dob_d").value;
+      if (mv && dv && +dv > MAXD[+mv - 1]) { dv = (MAXD[+mv - 1] < 10 ? "0" : "") + MAXD[+mv - 1]; $("f_dob_d").value = dv; }
+      cur.dob = mv && dv ? mv + "-" + dv : "";
+      people.set(cur.id, cur); renderList(); touch(); return;
+    }
+    if (t.dataset.lock) {
+      var lk = t.dataset.lock, li = cur.locks.indexOf(lk);
+      if (t.checked && li < 0) cur.locks.push(lk);
+      if (!t.checked && li >= 0) cur.locks.splice(li, 1);
+      paintField(lk); touch(); return;
+    }
     if (t.dataset.unk) {
       var k = t.dataset.unk, pk = cur.id + "|" + k;
       if (t.checked) { if (!isUnknown(cur[k])) prevVals[pk] = cur[k] || ""; cur[k] = "Unknown"; }
