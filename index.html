@@ -1,0 +1,725 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0b0c">
+<meta name="robots" content="noindex,nofollow">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Profiles">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Person Profiles</title>
+<style>:root{color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;padding:0}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
+</head>
+<body>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Hanken+Grotesk:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap">
+<style>
+/* Layout: same look as the School Dashboard (dark ground, muted gold accent, serif headings, mono labels, rules instead of boxes). Name list on the left, one profile on the right; stacks on phones. */
+:root{
+  --bg:#0b0b0c;
+  --surface:#141415;
+  --surface-2:#1b1b1d;
+  --line:#222224;
+  --line-2:#343437;
+  --fg:#e9e7e2;
+  --muted:#9a9892;
+  --dim:#77756f;
+  --accent:#988558;
+  --accent-ink:#0b0b0c;
+  --accent-soft:rgba(152,133,88,.14);
+  --accent-hi:#cbb887;
+  --safe:#5fa072;
+  --warn:#e6cd66;
+  --danger:#cf5a52;
+  --display:"Instrument Serif",Georgia,"Times New Roman",serif;
+  --body:"Hanken Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"DM Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{background:var(--bg)}
+body{
+  background:var(--bg);color:var(--fg);
+  font:400 15px/1.5 var(--body);
+  -webkit-font-smoothing:antialiased;
+  padding-block:28px 72px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.app{max-width:1120px;margin:0 auto;display:grid;grid-template-columns:310px minmax(0,1fr);gap:40px;align-items:start}
+
+/* sidebar */
+.side{position:sticky;top:16px;display:flex;flex-direction:column;gap:14px;min-width:0;max-height:calc(100dvh - 40px)}
+.eyebrow{font:500 11px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.brand{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-top:6px}
+h1{margin:0;font:400 38px/1.04 var(--display);letter-spacing:-.01em}
+h1 em{color:var(--accent);font-style:italic}
+#count{color:var(--dim);font:400 12px var(--mono);font-variant-numeric:tabular-nums}
+.tools{display:flex;flex-direction:column;gap:10px}
+input[type="search"],.field input,.field textarea{
+  width:100%;background:var(--surface);border:1px solid var(--line-2);border-radius:6px;padding:9px 10px;min-width:0;color-scheme:dark}
+input::placeholder,textarea::placeholder{color:var(--dim)}
+.field input:hover,.field textarea:hover,input[type="search"]:hover{border-color:var(--dim)}
+.field textarea{resize:vertical;min-height:78px;line-height:1.5}
+.btn,button.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;background:transparent;border:1px solid var(--line-2);border-radius:6px;padding:8px 14px;font-size:13px;font-weight:500;color:var(--fg)}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.danger{color:var(--danger)}
+.btn.danger.sure{background:var(--danger);border-color:var(--danger);color:var(--accent-ink)}
+
+/* category filter chips */
+.filters{display:flex;flex-wrap:wrap;gap:6px}
+.fchip{display:inline-flex;align-items:center;gap:7px;background:transparent;border:1px solid var(--line-2);border-radius:999px;padding:4px 11px;font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+.fchip i{width:8px;height:8px;border-radius:50%;background:var(--c)}
+.fchip b{font-weight:400;font-variant-numeric:tabular-nums}
+.fchip:hover{color:var(--fg)}
+.fchip[aria-pressed=true]{color:var(--fg);border-color:var(--accent)}
+
+#list{list-style:none;margin:0;padding:0;overflow-y:auto;min-height:0;display:flex;flex-direction:column;border-top:1px solid var(--line-2)}
+#list li{margin:0}
+#list li.item{display:flex;align-items:stretch;border-bottom:1px solid var(--line);border-left:3px solid transparent;position:relative}
+#list li.item.has-cat{background-image:linear-gradient(90deg,rgba(var(--kr),.26),rgba(var(--kr),0) 40%)}
+#list li.item:hover{background-color:var(--surface)}
+#list li.item.cur{background-color:var(--accent-soft);border-left-color:var(--accent-hi)}
+#list button.row{flex:1;min-width:0;text-align:left;background:transparent;border:0;border-radius:0;padding:10px 12px;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;column-gap:10px}
+.row .txt{display:flex;flex-direction:column;gap:1px;min-width:0}
+.row .st{font:500 10.5px var(--mono);letter-spacing:.09em;text-transform:uppercase;color:var(--c);border:1px solid var(--c);border-radius:999px;padding:2px 9px;white-space:nowrap}
+.row .bd{display:flex;flex-direction:column;align-items:flex-end;gap:1px;font-family:var(--mono);text-align:right}
+.row .bd b{font-weight:500;font-size:12.5px;letter-spacing:.04em;color:var(--fg)}
+.row .bd i{font-style:normal;font-size:11px;color:var(--dim);white-space:nowrap}
+.row .bd.today b,.row .bd.today i{color:var(--accent-hi)}
+#list li.divider{padding:18px 4px 6px;font:500 10px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--dim);border-bottom:1px solid var(--line-2)}
+#list li.item.nob .txt{opacity:.7}
+.row .nm{font-weight:500;overflow-wrap:anywhere;display:flex;align-items:center}
+.row .sub{font:400 11.5px var(--mono);color:var(--dim);overflow-wrap:anywhere;letter-spacing:.02em}
+.row .nm.unnamed{color:var(--dim);font-style:italic}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--c);margin-right:9px;flex:none}
+#list li.letter{display:block;padding:20px 4px 6px;font:400 46px/1 var(--display);color:var(--accent);letter-spacing:-.01em;border-bottom:1px solid var(--line-2)}
+#list li.letter:first-child{padding-top:8px}
+.list-empty{padding:16px 4px;color:var(--dim);font-size:14px}
+
+.side-foot{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.side-foot .btn{font-size:12px;padding:6px 10px}
+#storeNote{flex-basis:100%;margin:0;font:400 11.5px var(--mono);color:var(--dim)}
+
+/* main */
+.main{min-width:0}
+.card{background:transparent;border:0;padding:0}
+.empty{color:var(--muted);padding-top:34px}
+.empty h2{margin:0 0 8px;font:400 34px/1.1 var(--display);color:var(--fg)}
+.empty p{margin:0;max-width:52ch}
+
+.head{display:flex;align-items:center;gap:12px 14px;flex-wrap:wrap;padding-bottom:14px;border-bottom:1px solid var(--line-2)}
+.head .back{display:none}
+#pname{margin:0;font:400 40px/1.05 var(--display);letter-spacing:-.01em;flex:1 1 220px;min-width:0;overflow-wrap:anywhere}
+.badge{display:inline-flex;align-items:center;gap:8px;font:500 11px var(--mono);letter-spacing:.1em;text-transform:uppercase;padding:4px 11px;border:1px solid var(--c);border-radius:999px;color:var(--c)}
+.badge .dot{margin:0}
+#status{font:400 11px var(--mono);color:var(--dim);letter-spacing:.04em;min-width:64px}
+#status.bad{color:var(--danger)}
+.head-actions{display:flex;gap:8px}
+
+.sect{margin-top:30px}
+.sect>h3{margin:0 0 14px;padding-bottom:10px;border-bottom:1px solid var(--line-2);font:500 11px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px 16px}
+.field{grid-column:span 2;display:flex;flex-direction:column;gap:6px;min-width:0}
+.field.s1{grid-column:span 1}.field.s3{grid-column:span 3}.field.s4{grid-column:span 4}
+.field>label,.lbl,.lblrow label{font:400 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+
+.lblrow{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:16px}
+.field input.unk{-webkit-appearance:none;appearance:none;width:15px;height:15px;padding:0;margin:0;flex:none;position:relative;cursor:pointer;background:transparent;border:1px solid var(--line-2);border-radius:3px}
+.field input.unk:hover{border-color:var(--muted)}
+.field input.unk:checked{background:var(--accent);border-color:var(--accent)}
+.field input.unk:checked::after{content:"";position:absolute;left:4px;top:1px;width:4px;height:8px;border:solid var(--accent-ink);border-width:0 2px 2px 0;transform:rotate(45deg)}
+.field input.isunk,.field textarea.isunk{color:var(--dim);font-style:italic;background:transparent}
+.cats{display:flex;flex-wrap:wrap;gap:8px}
+.catb{display:inline-flex;align-items:center;gap:9px;background:transparent;border:1px solid var(--line-2);border-radius:999px;padding:8px 18px;font:500 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.catb i{width:10px;height:10px;border-radius:50%;background:var(--c)}
+.catb:hover{border-color:var(--c);color:var(--fg)}
+.catb[aria-checked=true]{color:var(--fg);border-color:var(--c);background:rgba(var(--kr),.2)}
+
+.checks{display:flex;flex-wrap:wrap;gap:6px}
+.chip{position:relative}
+.chip input{position:absolute;opacity:0;inset:0;width:100%;height:100%;margin:0;cursor:pointer}
+.chip span{display:inline-block;padding:5px 12px;border:1px solid var(--line-2);border-radius:999px;font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.chip:hover span{color:var(--fg)}
+.chip input:checked+span{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.chip input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
+
+.dates{display:flex;flex-direction:column;gap:8px}
+.drow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2.4fr) auto;gap:8px;align-items:center}
+.drow input{background:var(--surface);border:1px solid var(--line-2);border-radius:6px;padding:9px 10px;width:100%;min-width:0}
+.x{background:transparent;border:1px solid transparent;border-radius:6px;padding:6px 10px;color:var(--dim);font-size:12px}
+.x:hover{color:var(--fg);border-color:var(--line-2)}
+.add{align-self:flex-start}
+
+@media (max-width:860px){.app{gap:28px}}
+@media (max-width:760px){
+  .app{grid-template-columns:minmax(0,1fr)}
+  .side{position:static;max-height:none}
+  .app.detail .side{display:none}
+  .app:not(.detail) .main{display:none}
+  .head .back{display:inline-flex}
+  #pname{font-size:34px}
+}
+@media (max-width:640px){
+  .field,.field.s1,.field.s3{grid-column:span 4}
+  .drow{grid-template-columns:minmax(0,1fr) auto}
+  .drow .dwhat{grid-column:1/-1;grid-row:2}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="app" id="app">
+  <aside class="side">
+    <div><div class="eyebrow">Address book</div><div class="brand"><h1>Person <em>Profiles</em></h1><span id="count"></span></div></div>
+    <div class="tools">
+      <input id="search" type="search" placeholder="Search by name" aria-label="Search by name" autocomplete="off">
+      <div class="filters" id="filters"></div>
+      <button class="btn primary" id="addBtn" type="button">New person</button>
+    </div>
+    <ul id="list" aria-label="People"></ul>
+    <div class="side-foot">
+      <button class="btn" id="exportBtn" type="button" hidden>Export backup</button>
+      <label class="btn" for="importFile">Import backup</label>
+      <input id="importFile" type="file" accept=".json,application/json" hidden>
+      <p id="storeNote" role="status" aria-live="polite"></p>
+    </div>
+  </aside>
+
+  <main class="main">
+    <section class="card empty" id="empty">
+      <h2 id="emptyTitle">Loading your people…</h2>
+      <p id="emptyText">Profiles are listed alphabetically and can be found by name.</p>
+    </section>
+
+    <form class="card" id="form" hidden autocomplete="off">
+      <div class="head">
+        <button type="button" class="btn back" id="backBtn">All people</button>
+        <h2 id="pname">Unnamed</h2>
+        <span class="badge" id="pcat" hidden><i class="dot"></i><span></span></span>
+        <span class="badge" id="pstatus" hidden><i class="dot"></i><span></span></span>
+        <span id="status" role="status" aria-live="polite"></span>
+        <div class="head-actions">
+          <button type="button" class="btn danger" id="delBtn">Delete</button>
+          <button type="button" class="btn" id="cancelDel" hidden>Keep</button>
+        </div>
+      </div>
+      <div id="sections"></div>
+    </form>
+  </main>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ---------- Profile layout (mirrors the PDF template) ---------- */
+  var SECTIONS = [
+    { t: "Category & Status", f: [
+      { k: "cat", l: "How safe is this person for you", kind: "cat", s: "s4" },
+      { k: "catWhy", l: "Why (optional)", s: "s4" },
+      { k: "status", l: "Status", kind: "status", s: "s4" } ] },
+    { t: "Basics", f: [
+      { k: "fullName", l: "Full name", s: "s4" },
+      { k: "nickname", l: "Nickname" },
+      { k: "dob", l: "Birthday", type: "date", s: "s1" },
+      { k: "nationality", l: "Nationality", s: "s1" } ] },
+    { t: "Relationship", f: [
+      { k: "rel", l: "Relationship type", kind: "chips", s: "s4" },
+      { k: "howMet", l: "How / where we met", s: "s3" },
+      { k: "lastContact", l: "Last contact", type: "date", s: "s1" } ] },
+    { t: "Contact", f: [
+      { k: "phone", l: "Phone", s: "s1" },
+      { k: "email", l: "Email" },
+      { k: "social", l: "Social media", s: "s1" },
+      { k: "address", l: "Home address / city" },
+      { k: "country", l: "Country", s: "s1" },
+      { k: "timezone", l: "Time zone", s: "s1" } ] },
+    { t: "Work & Family", f: [
+      { k: "job", l: "Job / company" },
+      { k: "school", l: "School / education details (school, field, years)" },
+      { k: "partner", l: "Partner" },
+      { k: "childrenPets", l: "Children / pets" } ] },
+    { t: "Religion", f: [
+      { k: "religion", l: "Religion" },
+      { k: "church", l: "Church" } ] },
+    { t: "Personality & Interests", f: [
+      { k: "personality", l: "Personality" },
+      { k: "hobbies", l: "Hobbies & passions" },
+      { k: "likes", l: "Likes", kind: "area" },
+      { k: "dislikes", l: "Dislikes / allergies / diet", kind: "area" } ] },
+    { t: "Important Dates", f: [ { k: "dates", l: "Dates", kind: "dates", s: "s4" } ] },
+    { t: "Notes", f: [
+      { k: "giftIdeas", l: "Gift ideas", kind: "area" },
+      { k: "topicsAvoid", l: "Topics to avoid", kind: "area" },
+      { k: "notes", l: "Shared memories, current life situation, things to remember", kind: "area", s: "s4", rows: 6 } ] }
+  ];
+  var REL = ["Family", "Friend", "Close friend", "Partner", "Colleague", "Acquaintance", "Other"];
+  var CATS = [
+    { id: "safe", label: "Safe", hex: "#5fa072", rgb: "95,160,114" },
+    { id: "warning", label: "Warning", hex: "#e6cd66", rgb: "230,205,102" },
+    { id: "danger", label: "Danger", hex: "#cf5a52", rgb: "207,90,82" } ];
+  var STATUSES = [
+    { id: "lost", label: "Lost", hex: "#cf5a52", rgb: "207,90,82" },
+    { id: "warning", label: "Warning", hex: "#e6cd66", rgb: "230,205,102" },
+    { id: "unknown", label: "Unknown", hex: "#9a9892", rgb: "154,152,146" },
+    { id: "active", label: "Active", hex: "#5fa072", rgb: "95,160,114" },
+    { id: "strong", label: "Strong", hex: "#5b9bd5", rgb: "91,155,213" } ];
+  function statusOf(id) { for (var i = 0; i < STATUSES.length; i++) if (STATUSES[i].id === id) return STATUSES[i]; return null; }
+  function catOf(id) { for (var i = 0; i < CATS.length; i++) if (CATS[i].id === id) return CATS[i]; return null; }
+  var TEXT_KEYS = [];
+  SECTIONS.forEach(function (s) { s.f.forEach(function (f) { if (!f.kind || f.kind === "area") TEXT_KEYS.push(f.k); }); });
+
+  var $ = function (id) { return document.getElementById(id); };
+  var KEY = "person-profiles-v1";
+
+  function lblRow(f) {
+    return '<div class="lblrow"><label for="f_' + f.k + '">' + f.l + '</label>' +
+      '<input type="checkbox" class="unk" data-unk="' + f.k + '" title="Unknown" aria-label="Mark ' + f.l.replace(/"/g, "") + ' as unknown"></div>';
+  }
+  function isUnknown(v) { return String(v || "").trim().toLowerCase() === "unknown"; }
+
+  /* ---------- Build the form ---------- */
+  (function build() {
+    var html = "";
+    SECTIONS.forEach(function (s) {
+      html += '<div class="sect"><h3>' + s.t + '</h3><div class="grid">';
+      s.f.forEach(function (f) {
+        var cls = "field " + (f.s || "");
+        if (f.kind === "chips") {
+          html += '<div class="' + cls + '" role="group" aria-label="' + f.l + '"><span class="lbl">' + f.l + '</span><div class="checks">';
+          REL.forEach(function (r, i) {
+            html += '<label class="chip"><input type="checkbox" data-rel="' + r + '" id="rel_' + i + '"><span>' + r + '</span></label>';
+          });
+          html += "</div></div>";
+        } else if (f.kind === "cat") {
+          html += '<div class="' + cls + '" role="radiogroup" aria-label="Category"><span class="lbl">' + f.l + ' (select again to clear)</span><div class="cats">';
+          CATS.forEach(function (c) {
+            html += '<button type="button" class="catb" role="radio" aria-checked="false" data-cat="' + c.id + '" style="--c:' + c.hex + ';--kr:' + c.rgb + '"><i></i>' + c.label + '</button>';
+          });
+          html += "</div></div>";
+        } else if (f.kind === "status") {
+          html += '<div class="' + cls + '" role="radiogroup" aria-label="Status"><span class="lbl">' + f.l + ' (select again to clear)</span><div class="cats">';
+          STATUSES.forEach(function (c) {
+            html += '<button type="button" class="catb" role="radio" aria-checked="false" data-status="' + c.id + '" style="--c:' + c.hex + ';--kr:' + c.rgb + '"><i></i>' + c.label + '</button>';
+          });
+          html += "</div></div>";
+        } else if (f.kind === "dates") {
+          html += '<div class="' + cls + '"><span class="lbl">Birthdays, anniversaries, name days</span><div class="dates" id="dates"></div>' +
+            '<button type="button" class="btn add" id="addDate">Add a date</button></div>';
+        } else if (f.kind === "area") {
+          html += '<div class="' + cls + '">' + lblRow(f) + '<textarea id="f_' + f.k + '" data-k="' + f.k + '" rows="' + (f.rows || 3) + '"></textarea></div>';
+        } else {
+          html += '<div class="' + cls + '">' + lblRow(f) + '<input id="f_' + f.k + '" data-k="' + f.k + '" type="' + (f.type || "text") + '"' + (f.type === "date" ? ' data-date="1"' : "") + '></div>';
+        }
+      });
+      html += "</div></div>";
+    });
+    $("sections").innerHTML = html;
+  })();
+
+  /* ---------- State ---------- */
+  var people = new Map();   // id -> person
+  var cur = null;           // working copy of the open person
+  var dirty = false, saveTimer = null, pending = 0, chain = Promise.resolve();
+  var mode = "loading";     // loading | cloud | local
+  var col = null, dl = null, loadedOnce = false, query = "", catFilter = "";
+
+  function newId() { return "p" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+  function blank() {
+    var p = { id: newId(), cat: "", status: "", rel: [], dates: [{ d: "", w: "" }], created: Date.now(), updated: Date.now() };
+    TEXT_KEYS.forEach(function (k) { p[k] = ""; });
+    return p;
+  }
+  function clean(src, keepId) {
+    var p = blank();
+    p.id = keepId || (typeof src.id === "string" && /^[A-Za-z0-9_.~:@+-]{1,100}$/.test(src.id) ? src.id : newId());
+    TEXT_KEYS.forEach(function (k) { if (typeof src[k] === "string") p[k] = src[k].slice(0, 5000); });
+    p.cat = catOf(src.cat) ? src.cat : "";
+    p.status = statusOf(src.status) ? src.status : "";
+    p.rel = Array.isArray(src.rel) ? src.rel.filter(function (r) { return REL.indexOf(r) >= 0; }) : [];
+    p.dates = Array.isArray(src.dates) ? src.dates.slice(0, 30).map(function (x) {
+      return { d: String((x && x.d) || "").slice(0, 60), w: String((x && x.w) || "").slice(0, 200) };
+    }) : [];
+    if (!p.dates.length) p.dates = [{ d: "", w: "" }];
+    p.created = typeof src.created === "number" ? src.created : Date.now();
+    p.updated = typeof src.updated === "number" ? src.updated : Date.now();
+    return p;
+  }
+  function clone(o) { return JSON.parse(JSON.stringify(o)); }
+
+  /* ---------- Storage: private cloud store, or this browser as fallback ---------- */
+  var store = {
+    save: function (p) {
+      if (mode === "cloud") return col.doc(p.id).set(p);
+      people.set(p.id, p); writeLocal(); renderList(); return Promise.resolve();
+    },
+    remove: function (id) {
+      if (mode === "cloud") return col.doc(id).delete();
+      people.delete(id); writeLocal(); renderList(); return Promise.resolve();
+    }
+  };
+  function writeLocal() {
+    try { localStorage.setItem(KEY, JSON.stringify(Array.from(people.values()))); } catch (e) { setStatus("Could not save in this browser.", true); }
+  }
+  function readLocal() {
+    try {
+      var arr = JSON.parse(localStorage.getItem(KEY) || "[]");
+      arr.forEach(function (x) { var p = clean(x); people.set(p.id, p); });
+    } catch (e) {}
+  }
+
+  function setStatus(msg, bad) { var s = $("status"); s.textContent = msg; s.className = bad ? "bad" : ""; }
+
+  function enqueue(p) {
+    var copy = clone(p);
+    pending++; setStatus("Saving…");
+    chain = chain.then(function () { return store.save(copy); }).then(function () {
+      pending--; if (!pending && !dirty) setStatus("Saved");
+    }, function () {
+      pending--; setStatus("Could not save. Check your connection, then edit again.", true);
+    });
+  }
+  function touch() {
+    if (!cur) return;
+    cur.updated = Date.now(); dirty = true; setStatus("Saving…");
+    people.set(cur.id, cur);
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(function () { dirty = false; enqueue(cur); }, 700);
+  }
+  function flushNow() {
+    if (cur && dirty) { clearTimeout(saveTimer); dirty = false; enqueue(cur); }
+  }
+
+  /* ---------- List ---------- */
+  function byName(a, b) {
+    var an = (a.fullName || "").trim(), bn = (b.fullName || "").trim();
+    if (!an && bn) return 1; if (an && !bn) return -1;
+    return an.localeCompare(bn, undefined, { sensitivity: "base" });
+  }
+  function sortedPeople() { return Array.from(people.values()).sort(byName); }
+  function letterOf(name) {
+    var c = name.trim().charAt(0).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+    return /[A-Z]/.test(c) ? c : "#";
+  }
+  var MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  function todayStart() { var n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); }
+  function dayKey() { var t = todayStart(); return t.getFullYear() + "-" + t.getMonth() + "-" + t.getDate(); }
+  /* Next birthday from the date of birth: label like "14 Mar" and whole days from today (0 = today). */
+  function bday(p) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(p.dob || ""); if (!m) return null;
+    var mo = +m[2] - 1, d = +m[3]; if (mo < 0 || mo > 11 || d < 1 || d > 31) return null;
+    var t = todayStart(), next = new Date(t.getFullYear(), mo, d);
+    if (next < t) next = new Date(t.getFullYear() + 1, mo, d);
+    return { days: Math.round((next - t) / 864e5), label: d + " " + MONTHS[mo] };
+  }
+  function daysText(n) { return n === 0 ? "Today" : n === 1 ? "Tomorrow" : "in " + n + " days"; }
+  function renderFilters(all) {
+    var h = '<button type="button" class="fchip" data-cf="" aria-pressed="' + (catFilter === "") + '">All <b>' + all.length + '</b></button>';
+    CATS.forEach(function (c) {
+      var n = all.filter(function (p) { return p.cat === c.id; }).length;
+      h += '<button type="button" class="fchip" data-cf="' + c.id + '" style="--c:' + c.hex + '" aria-pressed="' + (catFilter === c.id) + '"><i></i>' + c.label + ' <b>' + n + '</b></button>';
+    });
+    var nb = all.filter(function (p) { return bday(p); }).length;
+    h += '<button type="button" class="fchip" data-cf="birthdays" style="--c:#cbb887" aria-pressed="' + (catFilter === "birthdays") + '"><i></i>Birthdays <b>' + nb + '</b></button>';
+    $("filters").innerHTML = h;
+  }
+  var lastSig = "";
+  function renderList() {
+    var ul = $("list"), all = sortedPeople(), q = query.trim().toLowerCase();
+    // Skip the rebuild when nothing visible changed, so a background save never replaces a button mid-click.
+    var sig = JSON.stringify([catFilter, q, dayKey(), cur && cur.id, loadedOnce, all.map(function (p) { return [p.id, p.fullName, p.cat, p.status, p.dob, p.nickname, p.rel]; })]);
+    if (sig === lastSig) return;
+    lastSig = sig;
+    renderFilters(all);
+    var bdMode = catFilter === "birthdays";
+    var rows = all.filter(function (p) {
+      if (catFilter && !bdMode && p.cat !== catFilter) return false;
+      return !q || (p.fullName || "").toLowerCase().indexOf(q) >= 0 || (p.nickname || "").toLowerCase().indexOf(q) >= 0;
+    });
+    if (bdMode) rows.sort(function (a, b) {
+      var x = bday(a), y = bday(b);
+      if (x && y) return (x.days - y.days) || byName(a, b);
+      if (x) return -1; if (y) return 1;
+      return byName(a, b);
+    });
+    $("count").textContent = all.length ? all.length + (all.length === 1 ? " person" : " people") : "";
+    ul.textContent = "";
+    if (!rows.length) {
+      var li = document.createElement("li"); li.className = "list-empty";
+      li.textContent = loadedOnce ? (all.length ? "No one matches." : "No one here yet. Use New person to add the first profile.") : "Loading…";
+      ul.appendChild(li); return;
+    }
+    var lastLetter = "", sawNoBday = false;
+    rows.forEach(function (p) {
+      var nm = (p.fullName || "").trim(), c = catOf(p.cat), bd = bdMode ? bday(p) : null;
+      if (bdMode) {
+        if (!bday(p) && !sawNoBday) {
+          sawNoBday = true;
+          var dv = document.createElement("li"); dv.className = "divider"; dv.textContent = "No birthday set"; ul.appendChild(dv);
+        }
+      } else {
+        var L = letterOf(nm);
+        if (L !== lastLetter) {
+          lastLetter = L;
+          var h = document.createElement("li"); h.className = "letter"; h.textContent = L; h.setAttribute("aria-hidden", "true"); ul.appendChild(h);
+        }
+      }
+      var li2 = document.createElement("li");
+      li2.className = "item" + (c ? " has-cat" : "") + (cur && cur.id === p.id ? " cur" : "") + (bdMode && !bday(p) ? " nob" : "");
+      li2.dataset.id = p.id;
+      if (c) li2.style.cssText = "--c:" + c.hex + ";--kr:" + c.rgb;
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "row"; b.dataset.id = p.id;
+      if (cur && cur.id === p.id) b.setAttribute("aria-current", "true");
+      var n = document.createElement("span"); n.className = "nm" + (nm ? "" : " unnamed");
+      if (c) { var d = document.createElement("i"); d.className = "dot"; n.appendChild(d); }
+      n.appendChild(document.createTextNode(nm || "Unnamed"));
+      var txt = document.createElement("div"); txt.className = "txt"; txt.appendChild(n);
+      b.appendChild(txt);
+      var sub = [c ? c.label : "", p.nickname ? "“" + p.nickname + "”" : "", (p.rel || []).join(", ")].filter(Boolean).join(" · ");
+      if (sub) { var s2 = document.createElement("span"); s2.className = "sub"; s2.textContent = sub; txt.appendChild(s2); }
+      if (bdMode) {
+        if (bd) {
+          var box = document.createElement("span"); box.className = "bd" + (bd.days === 0 ? " today" : "");
+          var l1 = document.createElement("b"); l1.textContent = bd.label;
+          var l2 = document.createElement("i"); l2.textContent = daysText(bd.days);
+          box.appendChild(l1); box.appendChild(l2); b.appendChild(box);
+        }
+      } else {
+        var stt = statusOf(p.status);
+        if (stt) { var st = document.createElement("span"); st.className = "st"; st.style.setProperty("--c", stt.hex); st.textContent = stt.label; b.appendChild(st); }
+      }
+      li2.appendChild(b); ul.appendChild(li2);
+    });
+  }
+
+  /* ---------- Form fill / read ---------- */
+  function renderDates() {
+    var box = $("dates"); box.textContent = "";
+    cur.dates.forEach(function (row, i) {
+      var d = document.createElement("div"); d.className = "drow";
+      var a = document.createElement("input"); a.type = "text"; a.placeholder = "Date, e.g. 14 Mar"; a.value = row.d; a.dataset.di = i; a.dataset.dk = "d"; a.setAttribute("aria-label", "Date " + (i + 1));
+      var w = document.createElement("input"); w.type = "text"; w.placeholder = "What it is (birthday, anniversary…)"; w.value = row.w; w.dataset.di = i; w.dataset.dk = "w"; w.className = "dwhat"; w.setAttribute("aria-label", "What, date " + (i + 1));
+      var x = document.createElement("button"); x.type = "button"; x.className = "x"; x.dataset.rm = i; x.textContent = "Remove"; x.setAttribute("aria-label", "Remove date " + (i + 1));
+      d.appendChild(a); d.appendChild(w); d.appendChild(x); box.appendChild(d);
+    });
+  }
+  function fillForm() {
+    if (!cur) return;
+    TEXT_KEYS.forEach(paintField);
+    Array.prototype.forEach.call(document.querySelectorAll("[data-rel]"), function (c) { c.checked = cur.rel.indexOf(c.dataset.rel) >= 0; });
+    renderDates(); setCatUI(); updateTitle();
+  }
+  function paintField(k) {
+    var el = $("f_" + k), v = cur[k] || "", unk = isUnknown(v), box = document.querySelector('[data-unk="' + k + '"]');
+    if (el.dataset.date) el.type = unk ? "text" : "date";   // a date box cannot show the word
+    el.value = v; el.readOnly = unk; el.classList.toggle("isunk", unk);
+    if (box) box.checked = unk;
+  }
+  var prevVals = {};
+  function setCatUI() {
+    Array.prototype.forEach.call(document.querySelectorAll("[data-cat]"), function (b) {
+      b.setAttribute("aria-checked", String(cur.cat === b.dataset.cat));
+    });
+    Array.prototype.forEach.call(document.querySelectorAll("[data-status]"), function (b) {
+      b.setAttribute("aria-checked", String(cur.status === b.dataset.status));
+    });
+  }
+  function updateTitle() {
+    $("pname").textContent = (cur.fullName || "").trim() || "Unnamed";
+    var c = catOf(cur.cat), pc = $("pcat");
+    pc.hidden = !c;
+    if (c) { pc.style.setProperty("--c", c.hex); pc.querySelector("span").textContent = c.label; }
+    var st = statusOf(cur.status), ps = $("pstatus");
+    ps.hidden = !st;
+    if (st) { ps.style.setProperty("--c", st.hex); ps.querySelector("span").textContent = st.label; }
+  }
+
+  function show(p) {
+    flushNow();
+    cancelDelete();
+    cur = p ? clone(p) : null;
+    $("form").hidden = !cur; $("empty").hidden = !!cur;
+    $("app").classList.toggle("detail", !!cur);
+    if (cur) { fillForm(); setStatus(""); window.scrollTo(0, 0); }
+    else updateEmpty();
+    renderList();
+  }
+  function updateEmpty() {
+    if (!loadedOnce) { $("emptyTitle").textContent = "Loading your people…"; return; }
+    if (!people.size) {
+      $("emptyTitle").textContent = "Start your people list";
+      $("emptyText").textContent = "Add someone with New person. Each profile holds the same details as the PDF template, and you find them again by name.";
+    } else {
+      $("emptyTitle").textContent = "Pick someone";
+      $("emptyText").textContent = "Choose a name from the list, or search by name. Changes save on their own.";
+    }
+  }
+
+  /* ---------- Events ---------- */
+  $("search").addEventListener("input", function (e) { query = e.target.value; renderList(); });
+  $("list").addEventListener("click", function (e) {
+    var b = e.target.closest("button.row"); if (!b) return;
+    var p = people.get(b.dataset.id); if (p) show(p);
+  });
+  $("addBtn").addEventListener("click", function () {
+    flushNow();
+    var p = blank(); people.set(p.id, p); enqueue(p);
+    $("search").value = ""; query = ""; catFilter = "";
+    show(p); $("f_fullName").focus();
+  });
+  $("backBtn").addEventListener("click", function () { show(null); });
+  $("form").addEventListener("submit", function (e) { e.preventDefault(); });
+
+  $("form").addEventListener("input", function (e) {
+    var t = e.target; if (!cur) return;
+    if (t.dataset.k) {
+      cur[t.dataset.k] = t.value;
+      if (t.dataset.k === "fullName") { updateTitle(); }
+      if (t.dataset.k === "fullName" || t.dataset.k === "nickname") { people.set(cur.id, cur); renderList(); }
+      touch();
+    } else if (t.dataset.dk) {
+      cur.dates[+t.dataset.di][t.dataset.dk] = t.value; touch();
+    }
+  });
+  $("form").addEventListener("change", function (e) {
+    var t = e.target; if (!cur) return;
+    if (t.dataset.unk) {
+      var k = t.dataset.unk, pk = cur.id + "|" + k;
+      if (t.checked) { if (!isUnknown(cur[k])) prevVals[pk] = cur[k] || ""; cur[k] = "Unknown"; }
+      else { cur[k] = prevVals[pk] || ""; }
+      paintField(k);
+      if (k === "fullName") updateTitle();
+      if (k === "fullName" || k === "nickname" || k === "dob") { people.set(cur.id, cur); renderList(); }
+      touch(); return;
+    }
+    if (!t.dataset.rel) return;
+    var i = cur.rel.indexOf(t.dataset.rel);
+    if (t.checked && i < 0) cur.rel.push(t.dataset.rel);
+    if (!t.checked && i >= 0) cur.rel.splice(i, 1);
+    people.set(cur.id, cur); renderList(); touch();
+  });
+  $("filters").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-cf]"); if (!b) return;
+    catFilter = b.dataset.cf; renderList();
+  });
+  $("form").addEventListener("click", function (e) {
+    if (!cur) return;
+    var sb = e.target.closest("[data-status]");
+    if (sb) {
+      cur.status = cur.status === sb.dataset.status ? "" : sb.dataset.status;
+      setCatUI(); updateTitle(); people.set(cur.id, cur); renderList(); touch();
+      return;
+    }
+    var cb = e.target.closest("[data-cat]");
+    if (cb) {
+      cur.cat = cur.cat === cb.dataset.cat ? "" : cb.dataset.cat;
+      setCatUI(); updateTitle(); people.set(cur.id, cur); renderList(); touch();
+      return;
+    }
+    if (e.target.id === "addDate") { cur.dates.push({ d: "", w: "" }); renderDates(); touch(); var ins = document.querySelectorAll(".drow input"); ins[ins.length - 2].focus(); }
+    var rm = e.target.closest("[data-rm]");
+    if (rm) { cur.dates.splice(+rm.dataset.rm, 1); if (!cur.dates.length) cur.dates.push({ d: "", w: "" }); renderDates(); touch(); }
+  });
+  $("form").addEventListener("focusout", function () { flushNow(); });
+
+  /* Two-step delete, built into the page */
+  function cancelDelete() { $("delBtn").classList.remove("sure"); $("delBtn").textContent = "Delete"; $("cancelDel").hidden = true; }
+  $("delBtn").addEventListener("click", function () {
+    var b = $("delBtn");
+    if (!b.classList.contains("sure")) { b.classList.add("sure"); b.textContent = "Delete for good"; $("cancelDel").hidden = false; return; }
+    var id = cur.id; clearTimeout(saveTimer); dirty = false;
+    people.delete(id); cur = null;
+    pending++; setStatus("Deleting…");
+    chain = chain.then(function () { return store.remove(id); }).then(function () { pending--; }, function () { pending--; });
+    show(null);
+  });
+  $("cancelDel").addEventListener("click", cancelDelete);
+
+  /* ---------- Backup ---------- */
+  $("exportBtn").addEventListener("click", function () {
+    flushNow();
+    var d = new Date(), name = "person-profiles-" + d.toISOString().slice(0, 10) + ".json";
+    var data = JSON.stringify({ version: 1, exported: d.toISOString(), people: sortedPeople() }, null, 2);
+    if (!dl) {
+      var a = document.createElement("a"), url = URL.createObjectURL(new Blob([data], { type: "application/json" }));
+      a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+      note("Backup downloaded."); return;
+    }
+    dl.save({ filename: name, data: data }).then(function () { note("Backup saved."); }, function () { note("Backup was not saved."); });
+  });
+  $("importFile").addEventListener("change", function (e) {
+    var f = e.target.files && e.target.files[0]; if (!f) return;
+    var r = new FileReader();
+    r.onload = function () {
+      try {
+        var j = JSON.parse(r.result), arr = Array.isArray(j) ? j : j.people;
+        if (!Array.isArray(arr)) throw new Error("bad");
+        var n = 0;
+        arr.forEach(function (x) { if (x && typeof x === "object") { var p = clean(x); people.set(p.id, p); enqueue(p); n++; } });
+        renderList(); updateEmpty(); note("Imported " + n + (n === 1 ? " profile." : " profiles."));
+      } catch (err) { note("That file is not a Person Profiles backup."); }
+    };
+    r.readAsText(f); e.target.value = "";
+  });
+  function note(msg) { $("storeNote").textContent = msg; }
+
+  /* ---------- Start ---------- */
+  function noteForMode() {
+    note(mode === "cloud" ? "Private to your account. Changes save automatically." :
+      "Saved in this browser only. Export a backup now and then.");
+  }
+  function startLocal() {
+    mode = "local"; readLocal(); loadedOnce = true; noteForMode(); renderList(); updateEmpty();
+  }
+  async function start() {
+    renderList(); updateEmpty();
+    var uid = null, dbn = null;
+    try {
+      if (window.claude && window.claude.use) {
+        var user = await window.claude.use("user");
+        dbn = await window.claude.use("db");
+        uid = user ? await user.id() : null;
+        try { dl = await window.claude.use("downloads"); } catch (e) { dl = null; }
+      }
+    } catch (e) { dbn = null; }
+    $("exportBtn").hidden = !dl && !!window.claude;
+    if (!dbn || !uid) { startLocal(); return; }
+    mode = "cloud"; col = dbn.collection("data/users/" + uid); noteForMode();
+    var slow = setTimeout(function () {
+      if (!loadedOnce) { $("emptyTitle").textContent = "Your people can't be reached yet"; $("emptyText").textContent = "Still trying. The list appears as soon as the connection answers."; }
+    }, 10000);
+    col.onSnapshot(function (snap) {
+      clearTimeout(slow);
+      var next = new Map();
+      snap.docs.forEach(function (d) { var p = clean(d.data(), d.id); next.set(d.id, p); });
+      // keep an in-flight edit on top of the stored copy
+      if (cur && (dirty || pending)) next.set(cur.id, cur);
+      people = next; loadedOnce = true;
+      if (cur) {
+        if (!people.has(cur.id)) { cur = null; $("form").hidden = true; $("empty").hidden = false; $("app").classList.remove("detail"); }
+        else if (!dirty && !pending && !$("form").contains(document.activeElement)) { cur = clone(people.get(cur.id)); fillForm(); }
+      }
+      renderList(); if (!cur) updateEmpty();
+    }, function () {
+      clearTimeout(slow);
+      if (!loadedOnce) startLocal();
+      else setStatus("Lost the connection to your saved profiles.", true);
+    });
+  }
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) renderList(); });
+  start();
+})();
+</script>
+</body>
+</html>
